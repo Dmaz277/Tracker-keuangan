@@ -1,0 +1,5 @@
+# Never commit personal data or backups
+backup*
+cadangan*
+*.bak
+.DS_Store
