@@ -105,7 +105,7 @@ var CO = ["Makan", "Vape", "Bensin", "Jajan", "Kuliah", "Kuota", "Biaya admin", 
 var CI = ["Kiriman ortu", "Ojol", "Lainnya"];
 var KJ = ["Kripto", "Saham", "Reksa", "Lainnya"];
 var BL = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-var S = {w: [{id: "shopeepay", n: "ShopeePay", i: 0}, {id: "bri", n: "BRI", i: 0}, {id: "tunai", n: "Tunai", i: 0}], tx: [], px: {}, bud: {}, co: CO.slice(), ci: CI.slice(), ot: 0, sv: 0, ph: 1, kj: KJ.slice(), ttl: "Tracker Keuangan", ac: "", th: "auto", lw: "", a1: {lib: 70, jajan: 30}, a2: {btc: 40, saham: 30, jajan: 30}};
+var S = {w: [{id: "shopeepay", n: "ShopeePay", i: 0}, {id: "bri", n: "BRI", i: 0}, {id: "tunai", n: "Tunai", i: 0}], tx: [], px: {}, bud: {}, co: CO.slice(), ci: CI.slice(), ot: 0, sv: 0, ph: 1, kj: KJ.slice(), ttl: "Tracker Keuangan", ac: "", th: "auto", hw: "", jn: "Biaya hidup", lw: "", a1: {lib: 70, jajan: 30}, a2: {btc: 40, saham: 30, jajan: 30}};
 try {
   var r = localStorage.getItem(K);
   if (r) S = Object.assign(S, JSON.parse(r));
@@ -295,23 +295,24 @@ function render() {
   }).join("");
   var nd = Object.keys(od).length;
   if (ok > 0 || S.ot > 0) {
-    var sv = (S.sv || 0) * nd, nt = ok - ob - sv, ib = {Kripto: 0, Saham: 0}, lb = 0;
+    var sv = (S.sv || 0) * nd, nt = ok - ob - sv, ib = {Kripto: 0, Saham: 0}, lb = 0, hb = 0;
     S.tx.forEach(function (t) {
       if (t.d.slice(0, 7) !== M) return;
       if (t.type === "inv" && t.side === "b" && ib[t.k] != null) ib[t.k] += t.a;
       if (t.type === "tf" && S.lw && t.to === S.lw) lb += t.a;
+      if (t.type === "tf" && S.hw && t.to === S.hw) hb += t.a;
     });
     mh += "<h2 style=\"margin-top:14px;cursor:pointer\" onclick=\"editO()\">Ojol bulan ini (fase " + S.ph + ") ✎</h2><div class=\"row\"><span>Bersih</span><span>" + rp(nt) + (S.ot > 0 ? " dari target " + rp(S.ot) : "") + "</span></div>";
     if (S.ot > 0) mh += "<div class=\"bar\"><i style=\"width:" + Math.min(100, Math.max(0, nt) / S.ot * 100) + "%\"></i></div>";
     mh += "<p class=\"hint\">Kotor " + rp(ok) + ", bensin " + rp(ob) + (sv ? ", dana servis " + rp(sv) : "") + ", " + nd + " hari ngojol" + (nd ? ", rata-rata " + rp(nt / nd) + " per hari" : "") + ".</p>";
     if (nt > 0) {
-      var jj = sp["Jajan"] || 0;
-      var pl = S.ph === 2 ? [["Bitcoin", S.a2.btc, ib.Kripto], ["Saham", S.a2.saham, ib.Saham], ["Jajan", S.a2.jajan, jj]] : [["Liburan", S.a1.lib, S.lw ? lb : null], ["Jajan", S.a1.jajan, jj]];
+      var jn = S.jn || "Biaya hidup", jj = S.hw ? hb : null;
+      var pl = S.ph === 2 ? [["Bitcoin", S.a2.btc, ib.Kripto], ["Saham", S.a2.saham, ib.Saham], [jn, S.a2.jajan, jj]] : [["Liburan", S.a1.lib, S.lw ? lb : null], [jn, S.a1.jajan, jj]];
       var tp = 0;
       pl.forEach(function (q) {
         var j = nt * q[1] / 100;
         tp += q[1];
-        mh += "<div class=\"row\"><span>Jatah " + q[0] + " (" + q[1] + "%)</span><b>" + rp(j) + "</b></div><p class=\"hint\" style=\"margin:0 0 8px\">" + (q[2] == null ? "Pilih dompet liburan di Pengaturan untuk melihat progres." : "Sudah " + rp(q[2]) + ", " + (q[2] > j ? "melebihi jatah" : "sisa " + rp(j - q[2]))) + "</p>";
+        mh += "<div class=\"row\"><span>Jatah " + q[0] + " (" + q[1] + "%)</span><b>" + rp(j) + "</b></div><p class=\"hint\" style=\"margin:0 0 8px\">" + (q[2] == null ? "Pilih dompet tujuan di Atur pembagian hasil ojol untuk melihat progres (catat lewat tab Pindah)." : "Sudah " + rp(q[2]) + ", " + (q[2] > j ? "melebihi jatah" : "sisa " + rp(j - q[2]))) + "</p>";
       });
       if (tp < 100) mh += "<div class=\"row\"><span>Sisa (" + (100 - tp) + "%)</span><b>" + rp(nt * (100 - tp) / 100) + "</b></div>";
     }
@@ -391,11 +392,11 @@ function editW(id) {
     var nm = v.n.trim(), sn = +v.s || 0;
     if (!nm) { alert("Isi nama dompet."); return false; }
     if (x) { x.n = nm; x.i += sn - cur; } else S.w.push({id: "w" + Date.now(), n: nm, i: sn});
-  }, x && !used ? function () { S.w = S.w.filter(function (y) { return y.id !== id; }); if (S.lw === id) S.lw = ""; } : null);
+  }, x && !used ? function () { S.w = S.w.filter(function (y) { return y.id !== id; }); if (S.lw === id) S.lw = ""; if (S.hw === id) S.hw = ""; } : null);
 }
 
 function editC(kind, name) {
-  var isNew = name == null, list = S[kind], lock = ["Jajan", "Bensin", "Biaya admin", "Ojol", "Kripto", "Saham"].indexOf(name) >= 0;
+  var isNew = name == null, list = S[kind], lock = ["Bensin", "Biaya admin", "Ojol", "Kripto", "Saham"].indexOf(name) >= 0;
   var f = [{k: "n", l: "Nama kategori", v: name || ""}];
   if (kind === "co") f.push({k: "b", l: "Batas bulanan (0 = tanpa batas)", t: "number", v: S.bud[name] || 0});
   sheet(isNew ? "Kategori baru" : "Ubah kategori", f, function (v) {
@@ -433,12 +434,13 @@ function editO() {
     {k: "ot", l: "Target ojol bersih per bulan (0 = tanpa target)", t: "number", v: S.ot || 0},
     {k: "sv", l: "Dana servis motor per hari ngojol (Rp)", t: "number", v: S.sv || 0},
     {k: "lw", l: "Dompet liburan atau pegangan", t: "select", v: S.lw || "", o: wl},
-    {k: "a1l", l: "Fase 1: Liburan (%)", t: "number", v: S.a1.lib}, {k: "a1j", l: "Fase 1: Jajan (%)", t: "number", v: S.a1.jajan},
-    {k: "a2b", l: "Fase 2: Bitcoin (%)", t: "number", v: S.a2.btc}, {k: "a2s", l: "Fase 2: Saham (%)", t: "number", v: S.a2.saham}, {k: "a2j", l: "Fase 2: Jajan (%)", t: "number", v: S.a2.jajan}
+    {k: "jn", l: "Nama jatah bulanan (bukan pengeluaran jajan)", v: S.jn || "Biaya hidup"}, {k: "hw", l: "Dompet biaya hidup bulanan", t: "select", v: S.hw || "", o: wl},
+    {k: "a1l", l: "Fase 1: Liburan (%)", t: "number", v: S.a1.lib}, {k: "a1j", l: "Fase 1: Biaya hidup (%)", t: "number", v: S.a1.jajan},
+    {k: "a2b", l: "Fase 2: Bitcoin (%)", t: "number", v: S.a2.btc}, {k: "a2s", l: "Fase 2: Saham (%)", t: "number", v: S.a2.saham}, {k: "a2j", l: "Fase 2: Biaya hidup (%)", t: "number", v: S.a2.jajan}
   ], function (v) {
     var g = function (k) { return Math.max(0, +v[k] || 0); };
     if (g("a1l") + g("a1j") > 100 || g("a2b") + g("a2s") + g("a2j") > 100) { alert("Total persen satu fase tidak boleh lebih dari 100%."); return false; }
-    S.ph = +v.ph; S.ot = g("ot"); S.sv = g("sv"); S.lw = v.lw;
+    S.ph = +v.ph; S.ot = g("ot"); S.sv = g("sv"); S.lw = v.lw; S.hw = v.hw; S.jn = v.jn.trim() || "Biaya hidup";
     S.a1 = {lib: g("a1l"), jajan: g("a1j")}; S.a2 = {btc: g("a2b"), saham: g("a2s"), jajan: g("a2j")};
   });
 }
